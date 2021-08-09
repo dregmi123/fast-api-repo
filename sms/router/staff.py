@@ -103,3 +103,24 @@ def updateUser(request: schemas.updateUser, db:Session = Depends(database.get_db
 def multiplequery(firstname: str= None, lastname: str = None, db: Session = Depends(database.get_db)):
     staff = db.query(model.sahayatri).filter(model.sahayatri.firstname ==firstname).filter(model.sahayatri.lastname == lastname).first()
     return staff
+
+'''
+@router.post('/')
+def arrayFormat(request: List[schemas.User]):
+    return request
+'''
+
+@router.post('/')
+def create_array_staff(request: List[schemas.Staff], db: Session = Depends(database.get_db)):
+    for data in request:
+        newStaff = model.sahayatri(firstname=data.firstname,
+                lastname=data.lastname, email=data.email, password =
+                hashing.get_password_hash(data.password))
+        db.add(newStaff)
+        db.commit()
+        db.refresh(newStaff)
+        checkValue = db.query(model.sahayatri).filter(model.sahayatri.firstname == request.firstname).first()
+    if checkValue:
+        return {"success": True, "message": "Succesfully Added"}
+    else:
+        return {"success": False , "message": "Failed to add"}
