@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Request,  Depends
+from fastapi import APIRouter, Request,  Depends, Header, Security
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security.api_key import APIKeyHeader
 from typing import List
 from sqlalchemy.orm import Session
 from .. import schemas, database, model, oauth2
@@ -7,15 +8,22 @@ from  .. import hashing, token
 from datetime import datetime, timedelta
 from ..auth import AuthHandler
 
+
 auth_handler = AuthHandler()
+X_API_KEY = "$@4@y@f^!"
+API_KEY_NAME = "x-api-key"
+api_key_header_auth = APIKeyHeader(name = API_KEY_NAME, auto_error=True)
 
 
 router = APIRouter(prefix='/staff', tags=['staff'])
 
-@router.get('{id}')
-def get_staff_by_id(id: int,  db: Session = Depends(database.get_db)):
-    staff = db.query(model.sahayatri).filter(model.sahayatri.id == id).first()
-    return staff
+@router.get('/{id}')
+def get_staff_by_id(id: int,  db: Session = Depends(database.get_db), x_api_key: str = Security(api_key_header_auth)):
+    if x_api_key != X_API_KEY:
+        return {"success": False, "message": "Invalid Header Key"}
+    else:
+        staff = db.query(model.sahayatri).filter(model.sahayatri.id == id).first()
+        return staff
 
 @router.post('')
 def create_staff(request: schemas.Staff, db: Session = Depends(database.get_db)):
