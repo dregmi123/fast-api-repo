@@ -1,5 +1,9 @@
-from fastapi import APIRouter, Request,  Depends, Header, Security
+import shutil
+import datetime
+import os
+from fastapi import APIRouter, Request,  Depends, Header, Security, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import FileResponse
 from fastapi.security.api_key import APIKeyHeader
 from typing import List
 from sqlalchemy.orm import Session
@@ -17,6 +21,23 @@ api_key_header_auth = APIKeyHeader(name = API_KEY_NAME, auto_error=True)
 
 router = APIRouter(prefix='/staff', tags=['staff'])
 
+@router.get('')
+def get_staff_by_id(id: int,  db: Session = Depends(database.get_db)):
+    staff = db.query(model.sahayatri).filter(model.sahayatri.id == id).first()
+    return staff
+    if not staff:
+        return {"success": False , "message": "Failed"}
+    else:
+        return {"success": True, "message": "Succes", "data": staff}
+
+@router.get('/media/')
+def return_file(file: str):
+    path = '/home/rev/Desktop/sms/'
+    file_path = os.path.join(path, f'media/{file}') 
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return {"error": {"message": "File Not Found"}}
+
 @router.get('/{id}')
 def get_staff_by_id(id: int,  db: Session = Depends(database.get_db), x_api_key: str = Security(api_key_header_auth)):
     if x_api_key != X_API_KEY:
@@ -27,8 +48,7 @@ def get_staff_by_id(id: int,  db: Session = Depends(database.get_db), x_api_key:
 
 @router.post('')
 def create_staff(request: schemas.Staff, db: Session = Depends(database.get_db)):
-    newStaff = model.sahayatri(firstname=request.firstname,
-            lastname=request.lastname, email=request.email, password = hashing.get_password_hash(request.password))
+    newStaff = model.sahayatri(firstname=request.firstname, lastname=request.lastname, email=request.email, password = hashing.get_password_hash(request.password)) 
     db.add(newStaff)
     db.commit()
     db.refresh(newStaff)
@@ -37,6 +57,7 @@ def create_staff(request: schemas.Staff, db: Session = Depends(database.get_db))
         return {"success": True, "message": "Succesfully Added"}
     else:
         return {"success": False , "message": "Failed to add"}
+
 
 @router.post('/login') #response_model=schemas.user_login)
 def login(request: schemas.user_login,  db: Session = Depends(database.get_db)):
@@ -52,13 +73,6 @@ def login(request: schemas.user_login,  db: Session = Depends(database.get_db)):
 
 
 
-@router.get('')
-def get_staff_by_id(id: int,  db: Session = Depends(database.get_db)):
-    staff = db.query(model.sahayatri).filter(model.sahayatri.id == id).first()
-    if not staff:
-        return {"success": False , "message": "Failed"}
-    else:
-        return {"success": True, "message": "Succes", "data": staff}
 
 @router.get('', response_model=List[schemas.User])
 def get_staff(db: Session = Depends(database.get_db)):
@@ -124,3 +138,32 @@ def create_array_staff(request: List[schemas.Staff], db: Session = Depends(datab
         return {"success": True, "message": "Succesfully Added"}
     else:
         return {"success": False , "message": "Failed to add"}
+
+@router.post('/files/{firstname}/{lastname}/{email}/{password}')
+def create_file_upload(firstname: str, lastname: str, email: str, password:
+        str, db: Session = Depends(database.get_db), file: UploadFile = File(...)):
+    with open("sms/media/"+file.filename, "wb") as buffer:
+        shutil.copyfileobj(file.file,buffer)
+    name = file.filename
+    path = '/home/rev/Desktop/sms/sms'
+    file_path = os.path.join(path, f'media/{name}') 
+    newStaff = model.sahayatri(firstname=firstname,
+            lastname=lastname, email=email, password =
+            hashing.get_password_hash(password), media= name) 
+    db.add(newStaff)
+    db.commit()
+    db.refresh(newStaff)
+    checkValue = db.query(model.sahayatri).filter(model.sahayatri.firstname ==firstname).first()
+    if checkValue:
+        return {"success": True, "message": "Succesfully Added"}
+    else:
+        return {"success": False , "message": "Failed to add"}
+    return {"message": "Succesful"}
+
+@router.get('image/{fileName}')
+def return_Media(fileName: str):
+    path = '/home/rev/Desktop/sms/'
+    file_path = os.path.join(path, f'media/{fileName}') 
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    return {"error": {"message": "File Not Found"}}

@@ -12,3 +12,4 @@ class sahayatri(Base):
     lastname = Column(VARCHAR(255))
     email= Column(VARCHAR(255))
     password = Column(VARCHAR(255))
+    media = Column(VARCHAR(255))

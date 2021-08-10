@@ -36,3 +36,9 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     token_schemas: Optional[str] = None
+
+class Test(BaseModel):
+    firstname: str
+
+    class Config():
+        orm_mode = True
